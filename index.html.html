@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>МОЁ РАСПИСАНИЕ И ЗАМЕТКИ</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#1E293B',
+              navy: '#1E3A8A',
+              accent: '#2563EB',
+              bg: '#F8FAFC',
+            },
+            type: {
+              lecture: { bg: '#EADCF8', text: '#5B2C6F', badge: '#8E44AD' },
+              practice: { bg: '#FADBD8', text: '#78281F', badge: '#E74C3C' },
+              lab: { bg: '#D4EFDF', text: '#145A32', badge: '#27AE60' },
+              online: { bg: '#FCE4EC', text: '#880E4F', badge: '#EC407A' },
+              conflict: { bg: '#FADBD8', text: '#78281F', border: '#E74C3C' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-full flex flex-col selection:bg-blue-200">
+
+  <!-- HEADER BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Branding Title & Main Navigation Tabs -->
+        <div class="flex items-center space-x-4">
+          <div class="bg-blue-900 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+            <i class="ph-bold ph-graduation-cap text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
+              МОЁ РАСПИСАНИЕ
+            </h1>
+            <p class="text-xs font-medium text-slate-500 mt-1">
+              Занятия, онлайн-модули, заметки и задания
+            </p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs Switcher -->
+        <div class="flex items-center bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          <button id="nav-tab-schedule" onclick="switchMainTab('schedule')" 
+            class="px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all bg-white text-slate-900 shadow-sm">
+            <i class="ph-bold ph-calendar-blank text-base text-blue-600"></i>
+            <span>Расписание</span>
+          </button>
+          <button id="nav-tab-notes" onclick="switchMainTab('notes')" 
+            class="px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all text-slate-600 hover:text-slate-900">
+            <i class="ph-bold ph-note-pencil text-base text-amber-500"></i>
+            <span>Заметки и Задания</span>
+            <span id="global-pending-tasks-badge" class="ml-1 px-1.5 py-0.5 text-[10px] bg-amber-500 text-white rounded-full font-black">0</span>
+          </button>
+        </div>
+
+        <!-- Top Right Profile Indicator -->
+        <div class="hidden lg:flex items-center space-x-4 text-xs text-slate-600">
+          <div class="flex items-center space-x-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <i class="ph-duotone ph-student text-lg text-blue-600"></i>
+            <div>
+              <div class="font-bold text-slate-900">Учебный план</div>
+              <div class="text-[10px] text-slate-400">Студенческий профиль</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- TOOLBAR / CONTROLS -->
+  <section class="bg-slate-900 text-white py-3 px-4 sm:px-6 lg:px-8 shadow-inner">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-sm">
+      
+      <!-- Source Schedule Switcher -->
+      <div class="flex items-center space-x-2">
+        <span class="text-slate-400 text-xs uppercase font-bold tracking-wider">Источник:</span>
+        <div class="bg-slate-800 p-1 rounded-lg border border-slate-700 flex space-x-1">
+          <button id="btn-source-abdu" onclick="setScheduleSource('abdu')" 
+            class="px-3 py-1 rounded-md font-semibold text-xs transition-all bg-blue-600 text-white shadow-sm">
+            Абду
+          </button>
+          <button id="btn-source-goha" onclick="setScheduleSource('goha')" 
+            class="px-3 py-1 rounded-md font-semibold text-xs text-slate-300 hover:text-white hover:bg-slate-700 transition-all">
+            Гоха
+          </button>
+        </div>
+      </div>
+
+      <!-- Schedule Specific View Mode Controls -->
+      <div id="schedule-controls" class="flex items-center space-x-3">
+        <div class="bg-slate-800 p-1 rounded-lg border border-slate-700 flex space-x-1">
+          <button id="btn-view-grid" onclick="setViewMode('grid')" 
+            class="px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 bg-blue-600 text-white">
+            <i class="ph-bold ph-squares-four text-sm"></i>
+            <span>Сетка расписания</span>
+          </button>
+          <button id="btn-view-list" onclick="setViewMode('list')" 
+            class="px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 text-slate-300 hover:text-white hover:bg-slate-700">
+            <i class="ph-bold ph-list-bullets text-sm"></i>
+            <span>Список</span>
+          </button>
+        </div>
+
+        <button onclick="openModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition shadow">
+          <i class="ph-bold ph-plus"></i>
+          <span>Добавить предмет</span>
+        </button>
+      </div>
+
+      <!-- Notes Controls -->
+      <div id="notes-controls" class="hidden flex items-center space-x-2">
+        <button onclick="openAddTaskModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1.5 transition shadow">
+          <i class="ph-bold ph-plus-circle text-sm"></i>
+          <span>Новое задание</span>
+        </button>
+      </div>
+
+      <!-- Global Save Button -->
+      <div class="flex items-center space-x-2">
+        <button onclick="saveAllToStorage()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center space-x-1.5 transition shadow-md">
+          <i class="ph-bold ph-floppy-disk text-sm"></i>
+          <span>Сохранить изменения</span>
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Save Notification Toast -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-bold transition-all transform translate-y-20 opacity-0 z-50">
+    <i class="ph-bold ph-check-circle text-lg"></i>
+    <span id="toast-message">Изменения успешно сохранены!</span>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- PAGE 1: SCHEDULE VIEW -->
+    <div id="main-schedule-page" class="space-y-6">
+
+      <!-- DAY FILTER BAR & SEARCH -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none" id="day-filter-container">
+          <!-- JS Populates Days -->
+        </div>
+
+        <div class="relative w-full md:w-64">
+          <i class="ph-bold ph-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-base"></i>
+          <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Поиск предмета или преподавателя..." 
+            class="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+        </div>
+      </div>
+
+      <!-- VIEW CONTAINER: GRID BOARD -->
+      <div id="grid-view-container" class="block overflow-x-auto pb-4">
+        <div class="min-w-[1000px] grid grid-cols-7 gap-3" id="schedule-grid">
+          <!-- JS Grid Columns -->
+        </div>
+      </div>
+
+      <!-- VIEW CONTAINER: LIST MODE -->
+      <div id="list-view-container" class="hidden space-y-6">
+        <!-- JS List Cards -->
+      </div>
+
+      <!-- FOOTER STATS & LEGEND SECTION -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Итоги недели</h3>
+          <div class="grid grid-cols-3 gap-2 text-center" id="stats-summary">
+            <div class="bg-blue-50/60 p-3 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
+              <i class="ph-duotone ph-book-open text-2xl text-blue-700 mb-1"></i>
+              <div id="stat-total" class="text-2xl font-black text-slate-900">0</div>
+              <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Очные/Практики</div>
+            </div>
+            <div class="bg-pink-50/60 p-3 rounded-xl border border-pink-100 flex flex-col items-center justify-center">
+              <i class="ph-duotone ph-laptop text-2xl text-pink-700 mb-1"></i>
+              <div id="stat-online" class="text-2xl font-black text-slate-900">0</div>
+              <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Онлайн (СОӨЖ)</div>
+            </div>
+            <div class="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 flex flex-col items-center justify-center">
+              <i class="ph-duotone ph-flask text-2xl text-emerald-700 mb-1"></i>
+              <div id="stat-labs" class="text-2xl font-black text-slate-900">0</div>
+              <div class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">Лабораторные</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Временные ориентиры</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex items-center space-x-3 bg-amber-50/60 p-3 rounded-xl border border-amber-100">
+              <div class="bg-amber-500 text-white p-2.5 rounded-lg shadow-sm">
+                <i class="ph-bold ph-sun text-lg"></i>
+              </div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 uppercase">Самый ранний старт</div>
+                <div id="stat-earliest" class="text-lg font-black text-slate-900">08:00</div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 bg-indigo-50/60 p-3 rounded-xl border border-indigo-100">
+              <div class="bg-indigo-900 text-white p-2.5 rounded-lg shadow-sm">
+                <i class="ph-bold ph-moon text-lg"></i>
+              </div>
+              <div>
+                <div class="text-[10px] font-semibold text-slate-400 uppercase">Самый поздний финиш</div>
+                <div id="stat-latest" class="text-lg font-black text-slate-900">22:20</div>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-3 text-center">
+            <i class="ph-bold ph-info"></i> Все время приведено к академическим часам.
+          </p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Принципы расписания</h3>
+          <ul class="text-xs space-y-2 text-slate-600">
+            <li class="flex items-center space-x-2">
+              <i class="ph-bold ph-check-circle text-emerald-500 text-base"></i>
+              <span>Планирую занятия заранее и без опозданий</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i class="ph-bold ph-check-circle text-emerald-500 text-base"></i>
+              <span>Баланс: учёба + самостоятельная работа</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <i class="ph-bold ph-check-circle text-emerald-500 text-base"></i>
+              <span>Онлайн СРС (СОӨЖ) подключаюсь вовремя</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- LEGEND FOOTER BADGES -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="font-bold text-slate-400 uppercase text-[10px]">Типы занятий:</span>
+          <span class="px-2.5 py-1 rounded-md font-bold bg-[#EADCF8] text-[#5B2C6F] border border-[#d2bbf0]">Лекция (Л)</span>
+          <span class="px-2.5 py-1 rounded-md font-bold bg-[#FADBD8] text-[#78281F] border border-[#f5b7b1]">Практика (П)</span>
+          <span class="px-2.5 py-1 rounded-md font-bold bg-[#D4EFDF] text-[#145A32] border border-[#a9dfbf]">Лабораторная (ЛАБ)</span>
+          <span class="px-2.5 py-1 rounded-md font-bold bg-[#FCE4EC] text-[#880E4F] border border-[#f8bbd0]">СОӨЖ / СРС (Онлайн)</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PAGE 2: NOTES & ASSIGNMENTS PAGE -->
+    <div id="main-notes-page" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Sidebar: List of Subjects -->
+      <div class="lg:col-span-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-wider flex items-center space-x-2">
+            <i class="ph-bold ph-books text-blue-600 text-base"></i>
+            <span>Предметы</span>
+          </h2>
+          <span id="subject-count-badge" class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-full">0</span>
+        </div>
+
+        <div id="subjects-list-container" class="space-y-2 overflow-y-auto max-h-[550px] pr-1">
+          <!-- JS Subject buttons -->
+        </div>
+      </div>
+
+      <!-- Right Panel: Notes & Tasks for Selected Subject -->
+      <div class="lg:col-span-8 space-y-6">
+
+        <!-- Subject Info Banner -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span id="active-subject-badge" class="text-[10px] font-black uppercase px-2.5 py-1 rounded-md bg-blue-100 text-blue-800">
+              Дисциплина
+            </span>
+            <h2 id="active-subject-title" class="text-xl font-black text-slate-900 mt-2">
+              Выберите предмет
+            </h2>
+            <p id="active-subject-subtext" class="text-xs text-slate-500 mt-1">
+              Нажмите на любой предмет слева для просмотра заметок и списка домашних заданий.
+            </p>
+          </div>
+
+          <button onclick="openAddTaskModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition shadow">
+            <i class="ph-bold ph-plus-circle text-base"></i>
+            <span>Добавить задание</span>
+          </button>
+        </div>
+
+        <!-- Subject Notes Textarea Block -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center space-x-2">
+              <i class="ph-bold ph-notebook text-amber-500 text-base"></i>
+              <span>Заметки по предмету</span>
+            </h3>
+            <span class="text-[10px] text-slate-400 font-medium">Сохраняется автоматически</span>
+          </div>
+
+          <textarea id="subject-note-textarea" oninput="handleNoteTextChange(this.value)" rows="5" 
+            placeholder="Пишите сюда конспекты, важные ссылки, критерии оценок, контакты преподавателя или силлабус..." 
+            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition resize-y"></textarea>
+        </div>
+
+        <!-- Assignments & Tasks Block -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <h3 class="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center space-x-2">
+                <i class="ph-bold ph-check-square-offset text-emerald-600 text-base"></i>
+                <span>Задания и Домашка</span>
+              </h3>
+            </div>
+
+            <!-- Task Status Filter Pills -->
+            <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+              <button onclick="setTaskFilter('all')" id="task-filter-all" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-white text-slate-900 shadow-sm">Все</button>
+              <button onclick="setTaskFilter('pending')" id="task-filter-pending" class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-600 hover:text-slate-900">В процессе</button>
+              <button onclick="setTaskFilter('completed')" id="task-filter-completed" class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-600 hover:text-slate-900">Сдано</button>
+            </div>
+          </div>
+
+          <!-- Tasks Cards Container -->
+          <div id="tasks-list-container" class="space-y-3">
+            <!-- JS Tasks rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL EDIT / ADD CLASS -->
+  <div id="class-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+      
+      <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+        <h3 id="modal-title" class="font-bold text-base flex items-center space-x-2">
+          <i class="ph-bold ph-pencil-simple"></i>
+          <span>Редактировать предмет</span>
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white transition">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="class-form" onsubmit="handleFormSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="edit-id">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Название дисциплины *</label>
+          <input type="text" id="input-subject" required placeholder="напр. Физика 1" 
+            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">День недели *</label>
+            <select id="input-day" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="mon">Понедельник (Пн)</option>
+              <option value="tue">Вторник (Вт)</option>
+              <option value="wed">Среда (Ср)</option>
+              <option value="thu">Четверг (Чт)</option>
+              <option value="fri">Пятница (Пт)</option>
+              <option value="sat">Суббота (Сб)</option>
+              <option value="sun">Воскресенье (Вс)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Тип занятия *</label>
+            <select id="input-type" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="lecture">Лекция</option>
+              <option value="practice">Практика</option>
+              <option value="lab">Лабораторная</option>
+              <option value="online">СОӨЖ (Онлайн)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Время (Слот) *</label>
+            <select id="input-time" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="07:50 - 08:40">07:50 - 08:40</option>
+              <option value="08:00 - 08:50">08:00 - 08:50</option>
+              <option value="08:55 - 09:45">08:55 - 09:45</option>
+              <option value="09:00 - 09:50">09:00 - 09:50</option>
+              <option value="10:00 - 10:50">10:00 - 10:50</option>
+              <option value="11:00 - 11:50">11:00 - 11:50</option>
+              <option value="11:05 - 11:55">11:05 - 11:55</option>
+              <option value="12:10 - 13:00">12:10 - 13:00</option>
+              <option value="13:10 - 14:00">13:10 - 14:00</option>
+              <option value="13:15 - 14:05">13:15 - 14:05</option>
+              <option value="14:10 - 15:00">14:10 - 15:00</option>
+              <option value="14:20 - 15:10">14:20 - 15:10</option>
+              <option value="15:25 - 16:15">15:25 - 16:15</option>
+              <option value="16:10 - 17:00">16:10 - 17:00</option>
+              <option value="16:30 - 17:20">16:30 - 17:20</option>
+              <option value="17:30 - 18:20">17:30 - 18:20</option>
+              <option value="19:30 - 20:20">19:30 - 20:20</option>
+              <option value="20:30 - 21:20">20:30 - 21:20</option>
+              <option value="21:30 - 22:20">21:30 - 22:20</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Группа / Код</label>
+            <input type="text" id="input-subgroup" placeholder="напр. ПС, ЛЖ, D" 
+              class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Аудитория / Ссылка</label>
+          <input type="text" id="input-room" placeholder="напр. Байзак центр, 531 Б" 
+            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Преподаватель</label>
+          <input type="text" id="input-teacher" placeholder="напр. Курмангужин Р.С." 
+            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+
+        <div class="pt-3 flex items-center justify-between border-t border-slate-100">
+          <button type="button" id="btn-delete" onclick="deleteCurrentItem()" class="text-red-600 hover:text-red-800 font-bold px-3 py-2 text-xs flex items-center space-x-1">
+            <i class="ph-bold ph-trash"></i>
+            <span>Удалить</span>
+          </button>
+          
+          <div class="flex space-x-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Отмена</button>
+            <button type="submit" class="px-5 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-md transition">Сохранить</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT / ADD TASK -->
+  <div id="task-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+      
+      <div class="bg-amber-500 text-slate-950 p-4 flex items-center justify-between font-black">
+        <h3 id="task-modal-title" class="text-base flex items-center space-x-2">
+          <i class="ph-bold ph-plus-circle"></i>
+          <span>Добавить новое задание</span>
+        </h3>
+        <button onclick="closeTaskModal()" class="text-slate-800 hover:text-black transition">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <form id="task-form" onsubmit="handleTaskFormSubmit(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="task-edit-id">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Предмет *</label>
+          <select id="task-input-subject" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-semibold">
+            <!-- JS dynamic subject options -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Название задания / Темы *</label>
+          <input type="text" id="task-input-title" required placeholder="напр. Выполнить СРС №2, Решить задачи 1-10" 
+            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Тип задания *</label>
+            <select id="task-input-type" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+              <option value="homework">Домашнее задание (ДЗ)</option>
+              <option value="lab">Отчёт по лабораторной</option>
+              <option value="srs">СРС / СОӨЖ</option>
+              <option value="project">Проект / Презентация</option>
+              <option value="exam">Подготовка к контрольной/экзамену</option>
+              <option value="other">Другое</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Дедлайн *</label>
+            <input type="date" id="task-input-deadline" required 
+              class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Статус *</label>
+          <select id="task-input-status" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+            <option value="pending">К выполнению (В процессе)</option>
+            <option value="completed">Сдано (Завершено)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Детали задания (необязательно)</label>
+          <textarea id="task-input-details" rows="3" placeholder="Требования, критерии, ссылка на форму..." 
+            class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none resize-none"></textarea>
+        </div>
+
+        <div class="pt-3 flex items-center justify-between border-t border-slate-100">
+          <button type="button" id="btn-delete-task" onclick="deleteCurrentTask()" class="text-red-600 hover:text-red-800 font-bold px-3 py-2 text-xs flex items-center space-x-1">
+            <i class="ph-bold ph-trash"></i>
+            <span>Удалить</span>
+          </button>
+          
+          <div class="flex space-x-2">
+            <button type="button" onclick="closeTaskModal()" class="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">Отмена</button>
+            <button type="submit" class="px-5 py-2 bg-amber-500 text-slate-950 font-black rounded-xl hover:bg-amber-400 shadow-md transition">Сохранить</button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // DEFAULT SCHEDULE DATASETS
+    const DEFAULT_DATASETS = {
+      abdu: [
+        { id: 'p1', day: 'mon', time: '09:00 - 09:50', subject: 'Қазақстан тарихы', teacher: 'Курмангужин Р.С.', room: 'Байзак центр, 531 Б', type: 'lecture', subgroup: 'D' },
+        { id: 'p2', day: 'mon', time: '10:00 - 10:50', subject: 'Сызықтық алгебра және аналитикалық геометрия', teacher: 'сениор-лектор Калиев П.У.', room: 'Байзак центр, 217 Б', type: 'lecture', subgroup: 'D' },
+        { id: 'p3', day: 'mon', time: '11:00 - 11:50', subject: 'Сызықтық алгебра және аналитикалық геометрия', teacher: 'сениор-лектор Калиев П.У.', room: 'Байзак центр, 329 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p4', day: 'mon', time: '12:10 - 13:00', subject: 'Сызықтық алгебра және аналитикалық геометрия', teacher: 'сениор-лектор Калиев П.У.', room: 'Байзак центр, 329 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p5', day: 'mon', time: '21:30 - 22:20', subject: 'Шет тілі', teacher: 'Преподаватель', room: 'онлайн 11', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p6', day: 'tue', time: '08:00 - 08:50', subject: 'Қазақ (орыс) тілі', teacher: 'Алиева Д.А.', room: 'Байзак центр, 412 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p7', day: 'tue', time: '09:00 - 09:50', subject: 'Қазақ (орыс) тілі', teacher: 'Алиева Д.А.', room: 'Байзак центр, 412 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p8', day: 'tue', time: '10:00 - 10:50', subject: 'Қазақ (орыс) тілі', teacher: 'Алиева Д.А.', room: 'Байзак центр, 412 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p9', day: 'tue', time: '21:30 - 22:20', subject: 'Қазақ (орыс) тілі', teacher: 'Алиева Д.А.', room: 'онлайн 11', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p10', day: 'wed', time: '08:00 - 08:50', subject: 'Қазақстан тарихы', teacher: 'Курмангужин Р.С.', room: 'Негізгі, 805', type: 'practice', subgroup: 'ПС' },
+        { id: 'p11', day: 'wed', time: '09:00 - 09:50', subject: 'Қазақстан тарихы', teacher: 'Курмангужин Р.С.', room: 'Негізгі, 805', type: 'practice', subgroup: 'ПС' },
+        { id: 'p12', day: 'wed', time: '10:00 - 10:50', subject: 'Физика 1', teacher: 'Алтыбаев Г.С.', room: 'Негізгі, 700', type: 'lecture', subgroup: 'D' },
+        { id: 'p13', day: 'thu', time: '13:15 - 14:05', subject: 'Физика 1', teacher: 'Алтыбаев Г.С.', room: 'Негізгі, 404', type: 'lab', subgroup: 'ЛЖ' },
+        { id: 'p14', day: 'thu', time: '14:20 - 15:10', subject: 'Физика 1', teacher: 'Алтыбаев Г.С.', room: 'Негізгі, 404', type: 'lab', subgroup: 'ЛЖ' },
+        { id: 'p15', day: 'thu', time: '16:30 - 17:20', subject: 'Ақпараттық-коммуникациялық технологиялар', teacher: 'Ермекова Д.Е.', room: 'Байзак центр, 430 Б', type: 'lecture', subgroup: 'D' },
+        { id: 'p16', day: 'thu', time: '20:30 - 21:20', subject: 'Физика 1', teacher: 'Алтыбаев Г.С.', room: 'онлайн 28', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p17', day: 'thu', time: '21:30 - 22:20', subject: 'Қазақстан тарихы', teacher: 'Курмангужин Р.С.', room: 'онлайн 66', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p18', day: 'fri', time: '10:00 - 10:50', subject: 'Ақпараттық-коммуникациялық технологиялар', teacher: 'Мұхаммеджанова Д.М.', room: 'Байзак центр, 429 Б', type: 'lab', subgroup: 'ЛЖ' },
+        { id: 'p19', day: 'fri', time: '11:05 - 11:55', subject: 'Ақпараттық-коммуникациялық технологиялар', teacher: 'Мұхаммеджанова Д.М.', room: 'Байзак центр, 428 Б', type: 'lab', subgroup: 'ЛЖ' },
+        { id: 'p20', day: 'fri', time: '19:30 - 20:20', subject: 'Сызықтық алгебра және аналитикалық геометрия', teacher: 'сениор-лектор Калиев П.У.', room: 'онлайн 22', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p21', day: 'fri', time: '20:30 - 21:20', subject: 'Ақпараттық-коммуникациялық технологиялар', teacher: 'Ермекова Д.Е.', room: 'онлайн 29', type: 'online', subgroup: 'СОӨЖ' },
+        { id: 'p22', day: 'sat', time: '11:05 - 11:55', subject: 'Шет тілі', teacher: 'Курмангалиева Д.М.', room: 'Байзак центр, 340 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p23', day: 'sat', time: '12:10 - 13:00', subject: 'Шет тілі', teacher: 'Курмангалиева Д.М.', room: 'Байзак центр, 340 Б', type: 'practice', subgroup: 'ПС' },
+        { id: 'p24', day: 'sat', time: '13:15 - 14:05', subject: 'Шет тілі', teacher: 'Курмангалиева Д.М.', room: 'Байзак центр, 340 Б', type: 'practice', subgroup: 'ПС' }
+      ],
+      goha: [
+        { id: 'g1', day: 'mon', time: '13:15 - 14:05', subject: 'CHE495, Общая химия', teacher: 'Сатыбалдиева Н.К.', room: 'ГУК1002', type: 'lab', subgroup: 'Лабораторная' },
+        { id: 'g2', day: 'mon', time: '14:20 - 15:10', subject: 'CHE495, Общая химия', teacher: 'Сатыбалдиева Н.К.', room: 'ГУК1002', type: 'lab', subgroup: 'Лабораторная' },
+        { id: 'g3', day: 'mon', time: '20:30 - 21:20', subject: 'LNG111, Технический Английский (B1)', teacher: 'Қанат Д.А.', room: 'Polytech online21', type: 'online', subgroup: 'Практика' },
+        { id: 'g4', day: 'tue', time: '10:00 - 10:50', subject: 'PHY468, Физика', teacher: 'Әсембаева Ә.Р.', room: 'ГУК806', type: 'lab', subgroup: 'Лабораторная' },
+        { id: 'g5', day: 'wed', time: '07:50 - 08:40', subject: 'LNG1043, Казахский (русский) язык', teacher: 'Адибаева Ш.Т.', room: 'online16', type: 'practice', subgroup: 'Практика' },
+        { id: 'g6', day: 'wed', time: '08:55 - 09:45', subject: 'KFK101, Физическая культура I', teacher: 'Исаев Х.А.', room: 'C08', type: 'practice', subgroup: 'Практика' },
+        { id: 'g7', day: 'wed', time: '10:00 - 10:50', subject: 'KFK101, Физическая культура I', teacher: 'Исаев Х.А.', room: 'C08', type: 'practice', subgroup: 'Практика' },
+        { id: 'g8', day: 'wed', time: '11:05 - 11:55', subject: 'GEO0489, Физическая геология', teacher: 'Амантаев С.А.', room: 'ГУК113 А', type: 'lab', subgroup: 'Лабораторная' },
+        { id: 'g9', day: 'wed', time: '15:25 - 16:15', subject: 'PHY468, Физика', teacher: 'Калауов Б.П.', room: 'ГУК913', type: 'practice', subgroup: 'Практика' },
+        { id: 'g10', day: 'wed', time: '16:30 - 17:20', subject: 'LNG1043, Казахский (русский) язык', teacher: 'Адибаева Ш.Т.', room: 'ГУК612', type: 'practice', subgroup: 'Практика' },
+        { id: 'g11', day: 'wed', time: '17:30 - 18:20', subject: 'LNG1043, Казахский (русский) язык', teacher: 'Адибаева Ш.Т.', room: 'ГУК612', type: 'practice', subgroup: 'Практика' },
+        { id: 'g12', day: 'thu', time: '07:50 - 08:40', subject: 'GEO0489, Физическая геология', teacher: 'Асубаева С.К.', room: 'ГУК533', type: 'lecture', subgroup: 'Лекция' },
+        { id: 'g13', day: 'thu', time: '08:55 - 09:45', subject: 'GEO0489, Физическая геология', teacher: 'Асубаева С.К.', room: 'ГУК533', type: 'lecture', subgroup: 'Лекция' },
+        { id: 'g14', day: 'thu', time: '11:05 - 11:55', subject: 'MAT101, Математика I', teacher: 'Шакенова Р.К.', room: 'НК914', type: 'practice', subgroup: 'Практика' },
+        { id: 'g15', day: 'thu', time: '12:10 - 13:00', subject: 'MAT101, Математика I', teacher: 'Шакенова Р.К.', room: 'НК914', type: 'practice', subgroup: 'Практика' },
+        { id: 'g16', day: 'thu', time: '14:20 - 15:10', subject: 'CHE495, Общая химия', teacher: 'Каленова А.С.', room: 'ГУК345', type: 'lecture', subgroup: 'Лекция' },
+        { id: 'g17', day: 'fri', time: '16:30 - 17:20', subject: 'PHY468, Физика (Лекция)', teacher: 'Лесбаев А.Б.', room: 'ГУК929', type: 'lecture', subgroup: 'Лекция' },
+        { id: 'g18', day: 'fri', time: '16:30 - 17:20', subject: 'MAT101, Математика I (Лекция)', teacher: 'Уаисов Б.', room: 'ГУК927', type: 'lecture', subgroup: 'Лекция' },
+        { id: 'g19', day: 'sat', time: '12:10 - 13:00', subject: 'LNG111, Технический Английский (B1)', teacher: 'Қанат Д.А.', room: 'ГУК608', type: 'practice', subgroup: 'Практика' },
+        { id: 'g20', day: 'sat', time: '13:15 - 14:05', subject: 'LNG111, Технический Английский (B1)', teacher: 'Қанат Д.А.', room: 'ГУК608', type: 'practice', subgroup: 'Практика' }
+      ]
+    };
+
+    const DEFAULT_NOTES = {
+      'Физика 1': 'Формулы к рубежке: F = ma, E = mc^2. Лабораторные сдавать по четвергам.',
+      'Қазақстан тарихы': 'Даты основных событий конца XX века повторить к семинару.'
+    };
+
+    const DEFAULT_TASKS = [
+      { id: 't1', subject: 'Физика 1', title: 'Лабораторная работа №3', type: 'lab', deadline: '2026-10-05', status: 'pending', details: 'Оформить графики и погрешности измерения.' },
+      { id: 't2', subject: 'Қазақстан тарихы', title: 'Презентация по истории', type: 'project', deadline: '2026-10-02', status: 'completed', details: 'Слайды 10-15 штук.' }
+    ];
+
+    const DAYS = [
+      { id: 'all', title: 'Вся неделя', short: 'Все' },
+      { id: 'mon', title: 'Понедельник', short: 'Пн' },
+      { id: 'tue', title: 'Вторник', short: 'Вт' },
+      { id: 'wed', title: 'Среда', short: 'Ср' },
+      { id: 'thu', title: 'Четверг', short: 'Чт' },
+      { id: 'fri', title: 'Пятница', short: 'Пт' },
+      { id: 'sat', title: 'Суббота', short: 'Сб' },
+      { id: 'sun', title: 'Воскресенье', short: 'Вс' }
+    ];
+
+    // STORAGE KEYS
+    const STORAGE_DATASETS_KEY = 'schedule_saved_datasets_v2';
+    const STORAGE_NOTES_KEY = 'schedule_saved_notes_v2';
+    const STORAGE_TASKS_KEY = 'schedule_saved_tasks_v2';
+
+    // LOAD STATE FROM LOCAL STORAGE
+    let loadedDatasets = localStorage.getItem(STORAGE_DATASETS_KEY);
+    let loadedNotes = localStorage.getItem(STORAGE_NOTES_KEY);
+    let loadedTasks = localStorage.getItem(STORAGE_TASKS_KEY);
+
+    let DATASETS = loadedDatasets ? JSON.parse(loadedDatasets) : JSON.parse(JSON.stringify(DEFAULT_DATASETS));
+    let NOTES = loadedNotes ? JSON.parse(loadedNotes) : JSON.parse(JSON.stringify(DEFAULT_NOTES));
+    let TASKS = loadedTasks ? JSON.parse(loadedTasks) : JSON.parse(JSON.stringify(DEFAULT_TASKS));
+
+    // ACTIVE APP STATE
+    let currentMainTab = 'schedule'; // 'schedule' | 'notes'
+    let currentSource = 'abdu';     // 'abdu' | 'goha'
+    let currentView = 'grid';       // 'grid' | 'list'
+    let selectedDay = 'all';
+    let searchQuery = '';
+    let selectedSubject = '';
+    let taskFilterStatus = 'all';
+
+    let currentSchedule = JSON.parse(JSON.stringify(DATASETS.abdu));
+
+    window.onload = function() {
+      renderDayFilters();
+      renderApp();
+      updatePendingTaskBadges();
+    };
+
+    function switchMainTab(tab) {
+      currentMainTab = tab;
+
+      const schedulePage = document.getElementById('main-schedule-page');
+      const notesPage = document.getElementById('main-notes-page');
+
+      const scheduleTabBtn = document.getElementById('nav-tab-schedule');
+      const notesTabBtn = document.getElementById('nav-tab-notes');
+
+      const scheduleControls = document.getElementById('schedule-controls');
+      const notesControls = document.getElementById('notes-controls');
+
+      if(tab === 'schedule') {
+        schedulePage.classList.remove('hidden');
+        notesPage.classList.add('hidden');
+
+        scheduleControls.classList.remove('hidden');
+        notesControls.classList.add('hidden');
+
+        scheduleTabBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all bg-white text-slate-900 shadow-sm';
+        notesTabBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all text-slate-600 hover:text-slate-900';
+      } else {
+        schedulePage.classList.add('hidden');
+        notesPage.classList.remove('hidden');
+
+        scheduleControls.classList.add('hidden');
+        notesControls.classList.remove('hidden');
+
+        notesTabBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all bg-white text-slate-900 shadow-sm';
+        scheduleTabBtn.className = 'px-4 py-2 rounded-lg font-bold text-xs flex items-center space-x-2 transition-all text-slate-600 hover:text-slate-900';
+
+        renderNotesView();
+      }
+    }
+
+    function setScheduleSource(source) {
+      DATASETS[currentSource] = JSON.parse(JSON.stringify(currentSchedule));
+
+      currentSource = source;
+      currentSchedule = JSON.parse(JSON.stringify(DATASETS[source]));
+
+      document.getElementById('btn-source-abdu').className = source === 'abdu'
+        ? 'px-3 py-1 rounded-md font-semibold text-xs transition-all bg-blue-600 text-white shadow-sm'
+        : 'px-3 py-1 rounded-md font-semibold text-xs text-slate-300 hover:text-white hover:bg-slate-700 transition-all';
+
+      document.getElementById('btn-source-goha').className = source === 'goha'
+        ? 'px-3 py-1 rounded-md font-semibold text-xs transition-all bg-blue-600 text-white shadow-sm'
+        : 'px-3 py-1 rounded-md font-semibold text-xs text-slate-300 hover:text-white hover:bg-slate-700 transition-all';
+
+      selectedSubject = ''; // reset active notes subject selection
+      renderApp();
+      if(currentMainTab === 'notes') renderNotesView();
+    }
+
+    function saveAllToStorage() {
+      DATASETS[currentSource] = JSON.parse(JSON.stringify(currentSchedule));
+      localStorage.setItem(STORAGE_DATASETS_KEY, JSON.stringify(DATASETS));
+      localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(NOTES));
+      localStorage.setItem(STORAGE_TASKS_KEY, JSON.stringify(TASKS));
+      showToast('Изменения успешно сохранены!');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast-notification');
+      const msg = document.getElementById('toast-message');
+      if (msg) msg.innerText = message;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    function setViewMode(mode) {
+      currentView = mode;
+      document.getElementById('btn-view-grid').className = mode === 'grid'
+        ? 'px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 bg-blue-600 text-white'
+        : 'px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 text-slate-300 hover:text-white hover:bg-slate-700';
+
+      document.getElementById('btn-view-list').className = mode === 'list'
+        ? 'px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 bg-blue-600 text-white'
+        : 'px-3 py-1 rounded-md font-semibold text-xs flex items-center space-x-1.5 text-slate-300 hover:text-white hover:bg-slate-700';
+
+      document.getElementById('grid-view-container').style.display = mode === 'grid' ? 'block' : 'none';
+      document.getElementById('list-view-container').style.display = mode === 'list' ? 'block' : 'none';
+
+      renderApp();
+    }
+
+    function renderDayFilters() {
+      const container = document.getElementById('day-filter-container');
+      container.innerHTML = DAYS.map(d => `
+        <button onclick="setDayFilter('${d.id}')" 
+          class="px-3 py-1.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
+            selectedDay === d.id 
+              ? 'bg-slate-900 text-white shadow-md' 
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }">
+          ${d.short}
+        </button>
+      `).join('');
+    }
+
+    function setDayFilter(dayId) {
+      selectedDay = dayId;
+      renderDayFilters();
+      renderApp();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.toLowerCase().trim();
+      renderApp();
+    }
+
+    function renderApp() {
+      let items = currentSchedule.filter(item => {
+        const matchesDay = selectedDay === 'all' || item.day === selectedDay;
+        const matchesSearch = !searchQuery || 
+          item.subject.toLowerCase().includes(searchQuery) ||
+          (item.teacher && item.teacher.toLowerCase().includes(searchQuery)) ||
+          (item.room && item.room.toLowerCase().includes(searchQuery));
+        return matchesDay && matchesSearch;
+      });
+
+      if (currentView === 'grid') {
+        renderGridView(items);
+      } else {
+        renderListView(items);
+      }
+
+      updateStats();
+    }
+
+    function getTypeStyles(type) {
+      switch(type) {
+        case 'lecture': return 'bg-[#EADCF8] text-[#5B2C6F] border-[#d2bbf0] hover:bg-[#e0cbf5]';
+        case 'practice': return 'bg-[#FADBD8] text-[#78281F] border-[#f5b7b1] hover:bg-[#f8c9c5]';
+        case 'lab': return 'bg-[#D4EFDF] text-[#145A32] border-[#a9dfbf] hover:bg-[#c1e9cf]';
+        case 'online': return 'bg-[#FCE4EC] text-[#880E4F] border-[#f8bbd0] hover:bg-[#f8d0de]';
+        default: return 'bg-slate-100 text-slate-800 border-slate-200';
+      }
+    }
+
+    function getTypeBadge(type, subgroup) {
+      let label = 'Урок';
+      if(type === 'lecture') label = 'Л';
+      else if(type === 'practice') label = 'П';
+      else if(type === 'lab') label = 'ЛАБ';
+      else if(type === 'online') label = 'СОӨЖ';
+
+      const tag = subgroup ? ` ${subgroup}` : '';
+      return `${label}${tag}`;
+    }
+
+    function renderGridView(items) {
+      const grid = document.getElementById('schedule-grid');
+      const activeDays = selectedDay === 'all' 
+        ? DAYS.filter(d => d.id !== 'all') 
+        : DAYS.filter(d => d.id === selectedDay);
+
+      grid.style.gridTemplateColumns = `repeat(${activeDays.length}, minmax(0, 1fr))`;
+
+      grid.innerHTML = activeDays.map(dayObj => {
+        const dayItems = items.filter(i => i.day === dayObj.id);
+
+        const timeMap = {};
+        dayItems.forEach(item => { timeMap[item.time] = (timeMap[item.time] || 0) + 1; });
+
+        return `
+          <div class="flex flex-col bg-slate-50/70 border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
+            <div class="bg-slate-900 text-white p-2.5 text-center flex items-center justify-center space-x-1.5">
+              <span class="font-black text-xs uppercase tracking-wide">${dayObj.short}</span>
+              <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">(${dayObj.title})</span>
+            </div>
+
+            <div class="p-2 space-y-2 flex-grow min-h-[450px]">
+              ${dayObj.id === 'sun' && dayItems.length === 0 ? `
+                <div class="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400">
+                  <i class="ph-duotone ph-sun-dim text-4xl mb-2 text-amber-400"></i>
+                  <div class="font-bold text-xs text-slate-600">Выходной</div>
+                </div>
+              ` : ''}
+
+              ${dayItems.length === 0 && dayObj.id !== 'sun' ? `
+                <div class="h-full flex items-center justify-center text-center p-3 text-slate-400 text-[11px] font-medium">
+                  Занятий нет
+                </div>
+              ` : ''}
+
+              ${dayItems.map(item => {
+                const isConflict = timeMap[item.time] > 1;
+                const styleClasses = isConflict 
+                  ? 'bg-red-100 text-red-900 border-red-300 ring-2 ring-red-400' 
+                  : getTypeStyles(item.type);
+
+                return `
+                  <div onclick="openModal('${item.id}')" 
+                    class="p-2.5 rounded-xl border text-left cursor-pointer transition-all transform hover:-translate-y-0.5 shadow-sm relative group ${styleClasses}">
+                    
+                    ${isConflict ? `
+                      <span class="absolute -top-2 -right-1 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow">
+                        НАКЛАДКА!
+                      </span>
+                    ` : ''}
+
+                    <div class="flex items-center justify-between text-[10px] font-extrabold mb-1 opacity-90">
+                      <span class="flex items-center space-x-1">
+                        <i class="ph-bold ph-clock text-xs"></i>
+                        <span>${item.time}</span>
+                      </span>
+                      <span class="px-1.5 py-0.5 rounded bg-white/60 backdrop-blur-sm uppercase font-black text-[9px]">
+                        ${getTypeBadge(item.type, item.subgroup)}
+                      </span>
+                    </div>
+
+                    <div class="font-bold text-xs leading-tight mb-1 text-slate-900">
+                      ${item.subject}
+                    </div>
+
+                    <div class="text-[10px] font-semibold opacity-80 flex items-center space-x-1 mb-0.5">
+                      <i class="ph-bold ph-map-pin"></i>
+                      <span>${item.room || 'Не указано'}</span>
+                    </div>
+
+                    ${item.teacher ? `
+                      <div class="text-[10px] opacity-75 truncate flex items-center space-x-1">
+                        <i class="ph-bold ph-user"></i>
+                        <span>${item.teacher}</span>
+                      </div>
+                    ` : ''}
+
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderListView(items) {
+      const container = document.getElementById('list-view-container');
+      const activeDays = selectedDay === 'all' ? DAYS.filter(d => d.id !== 'all') : DAYS.filter(d => d.id === selectedDay);
+
+      container.innerHTML = activeDays.map(dayObj => {
+        const dayItems = items.filter(i => i.day === dayObj.id);
+        if(dayItems.length === 0) return '';
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div class="bg-slate-900 text-white px-5 py-3 font-bold text-sm flex items-center justify-between">
+              <span class="uppercase tracking-wider">${dayObj.title}</span>
+              <span class="text-xs text-slate-400 font-normal">${dayItems.length} предметов</span>
+            </div>
+
+            <div class="divide-y divide-slate-100">
+              ${dayItems.map(item => `
+                <div onclick="openModal('${item.id}')" class="p-4 hover:bg-slate-50 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="flex items-start space-x-3">
+                    <div class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl font-black text-xs min-w-[90px] text-center">
+                      ${item.time}
+                    </div>
+                    <div>
+                      <div class="font-bold text-sm text-slate-900">${item.subject}</div>
+                      <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-3">
+                        ${item.teacher ? `<span><i class="ph-bold ph-user text-blue-600"></i> ${item.teacher}</span>` : ''}
+                        <span><i class="ph-bold ph-map-pin text-emerald-600"></i> ${item.room || 'Онлайн'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center space-x-2">
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${getTypeStyles(item.type)}">
+                      ${getTypeBadge(item.type, item.subgroup)}
+                    </span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStats() {
+      const total = currentSchedule.length;
+      const online = currentSchedule.filter(i => i.type === 'online').length;
+      const labs = currentSchedule.filter(i => i.type === 'lab').length;
+
+      document.getElementById('stat-total').innerText = total;
+      document.getElementById('stat-online').innerText = online;
+      document.getElementById('stat-labs').innerText = labs;
+
+      if(total > 0) {
+        const times = currentSchedule.map(i => i.time.split(' - ')[0]).sort();
+        const endTimes = currentSchedule.map(i => i.time.split(' - ')[1]).sort();
+        document.getElementById('stat-earliest').innerText = times[0] || '08:00';
+        document.getElementById('stat-latest').innerText = endTimes[endTimes.length - 1] || '22:20';
+      }
+    }
+
+    function getUniqueSubjects() {
+      const unique = [];
+      currentSchedule.forEach(item => {
+        if(item.subject && !unique.includes(item.subject)) {
+          unique.push(item.subject);
+        }
+      });
+      return unique.sort();
+    }
+
+    function renderNotesView() {
+      const subjects = getUniqueSubjects();
+      document.getElementById('subject-count-badge').innerText = subjects.length;
+
+      if(subjects.length > 0 && (!selectedSubject || !subjects.includes(selectedSubject))) {
+        selectedSubject = subjects[0];
+      }
+
+      // Render Subjects List
+      const listContainer = document.getElementById('subjects-list-container');
+      if(subjects.length === 0) {
+        listContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">Нет предметов в расписании</div>`;
+      } else {
+        listContainer.innerHTML = subjects.map(sub => {
+          const isSelected = sub === selectedSubject;
+          const subTasks = TASKS.filter(t => t.subject === sub);
+          const pendingCount = subTasks.filter(t => t.status === 'pending').length;
+
+          return `
+            <button onclick="selectSubjectForNotes('${sub}')" 
+              class="w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+                isSelected 
+                  ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm ring-1 ring-blue-300' 
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }">
+              <div class="truncate font-bold text-xs pr-2">
+                ${sub}
+              </div>
+              ${pendingCount > 0 ? `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-sm shrink-0">
+                  ${pendingCount}
+                </span>
+              ` : `
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-400 shrink-0">
+                  ${subTasks.length}
+                </span>
+              `}
+            </button>
+          `;
+        }).join('');
+      }
+
+      // Populate Active Subject Details
+      const titleEl = document.getElementById('active-subject-title');
+      const subtextEl = document.getElementById('active-subject-subtext');
+      const noteTextarea = document.getElementById('subject-note-textarea');
+
+      if(selectedSubject) {
+        titleEl.innerText = selectedSubject;
+        const matchingItems = currentSchedule.filter(i => i.subject === selectedSubject);
+        const teachers = Array.from(new Set(matchingItems.map(i => i.teacher).filter(Boolean))).join(', ');
+        subtextEl.innerText = teachers ? `Преподаватель(и): ${teachers}` : 'Дисциплина расписания';
+
+        noteTextarea.value = NOTES[selectedSubject] || '';
+      } else {
+        titleEl.innerText = 'Предмет не выбран';
+        subtextEl.innerText = 'Добавьте предметы в расписание';
+        noteTextarea.value = '';
+      }
+
+      renderTasksList();
+      updatePendingTaskBadges();
+    }
+
+    function selectSubjectForNotes(subjectName) {
+      selectedSubject = subjectName;
+      renderNotesView();
+    }
+
+    function handleNoteTextChange(value) {
+      if(selectedSubject) {
+        NOTES[selectedSubject] = value;
+      }
+    }
+
+    function setTaskFilter(status) {
+      taskFilterStatus = status;
+      ['all', 'pending', 'completed'].forEach(st => {
+        const btn = document.getElementById(`task-filter-${st}`);
+        if(btn) {
+          if(st === status) {
+            btn.className = 'px-2.5 py-1 text-[11px] font-bold rounded-lg bg-white text-slate-900 shadow-sm';
+          } else {
+            btn.className = 'px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-600 hover:text-slate-900';
+          }
+        }
+      });
+      renderTasksList();
+    }
+
+    function renderTasksList() {
+      const container = document.getElementById('tasks-list-container');
+      if(!selectedSubject) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400">Выберите предмет для просмотра заданий.</div>`;
+        return;
+      }
+
+      let subTasks = TASKS.filter(t => t.subject === selectedSubject);
+      if(taskFilterStatus !== 'all') {
+        subTasks = subTasks.filter(t => t.status === taskFilterStatus);
+      }
+
+      if(subTasks.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <i class="ph-duotone ph-clipboard-text text-3xl text-slate-300 mb-1"></i>
+            <div class="font-bold text-xs text-slate-600">Заданий нет</div>
+            <div class="text-[10px] mt-0.5">Нажмите «Добавить задание», чтобы записать работу или домашку</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = subTasks.map(task => {
+        const isDone = task.status === 'completed';
+        const typeBadge = getTaskTypeBadge(task.type);
+
+        return `
+          <div class="p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            isDone ? 'bg-slate-50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm hover:border-amber-300'
+          }">
+            <div class="flex items-start space-x-3">
+              <button onclick="toggleTaskStatus('${task.id}')" class="mt-0.5 text-lg transition ${
+                isDone ? 'text-emerald-600' : 'text-slate-300 hover:text-amber-500'
+              }">
+                <i class="ph-fill ${isDone ? 'ph-check-circle' : 'ph-circle'}"></i>
+              </button>
+              <div>
+                <div class="font-bold text-xs text-slate-900 ${isDone ? 'line-through text-slate-500' : ''}">
+                  ${task.title}
+                </div>
+                ${task.details ? `<div class="text-[11px] text-slate-500 mt-1">${task.details}</div>` : ''}
+                <div class="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-slate-500">
+                  <span class="font-semibold flex items-center space-x-1">
+                    <i class="ph-bold ph-calendar-blank"></i>
+                    <span>Дедлайн: ${task.deadline || 'Не указан'}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-2 self-end sm:self-center">
+              <span class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase ${typeBadge.style}">
+                ${typeBadge.label}
+              </span>
+              <button onclick="openAddTaskModal('${task.id}')" class="p-1.5 text-slate-400 hover:text-slate-700 transition">
+                <i class="ph-bold ph-pencil-simple text-sm"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getTaskTypeBadge(type) {
+      switch(type) {
+        case 'homework': return { label: 'Домашка', style: 'bg-blue-100 text-blue-800' };
+        case 'lab': return { label: 'Лабораторная', style: 'bg-emerald-100 text-emerald-800' };
+        case 'srs': return { label: 'СРС / СОӨЖ', style: 'bg-purple-100 text-purple-800' };
+        case 'project': return { label: 'Проект', style: 'bg-amber-100 text-amber-900' };
+        case 'exam': return { label: 'Контрольная', style: 'bg-red-100 text-red-800' };
+        default: return { label: 'Задание', style: 'bg-slate-100 text-slate-800' };
+      }
+    }
+
+    function toggleTaskStatus(taskId) {
+      const task = TASKS.find(t => t.id === taskId);
+      if(task) {
+        task.status = task.status === 'completed' ? 'pending' : 'completed';
+        renderNotesView();
+        updatePendingTaskBadges();
+      }
+    }
+
+    function updatePendingTaskBadges() {
+      const pendingCount = TASKS.filter(t => t.status === 'pending').length;
+      const badge = document.getElementById('global-pending-tasks-badge');
+      if(badge) {
+        badge.innerText = pendingCount;
+      }
+    }
+
+    function openModal(id = null) {
+      const modal = document.getElementById('class-modal');
+      const title = document.getElementById('modal-title');
+      const deleteBtn = document.getElementById('btn-delete');
+
+      if(id) {
+        const item = currentSchedule.find(i => i.id === id);
+        if(!item) return;
+
+        title.innerText = 'Редактировать предмет';
+        deleteBtn.style.display = 'flex';
+        
+        document.getElementById('edit-id').value = item.id;
+        document.getElementById('input-subject').value = item.subject;
+        document.getElementById('input-day').value = item.day;
+        document.getElementById('input-time').value = item.time;
+        document.getElementById('input-type').value = item.type;
+        document.getElementById('input-subgroup').value = item.subgroup || '';
+        document.getElementById('input-room').value = item.room || '';
+        document.getElementById('input-teacher').value = item.teacher || '';
+      } else {
+        title.innerText = 'Добавить новый предмет';
+        deleteBtn.style.display = 'none';
+        document.getElementById('class-form').reset();
+        document.getElementById('edit-id').value = '';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('class-modal').classList.add('hidden');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+
+      const editId = document.getElementById('edit-id').value;
+      const newItem = {
+        id: editId || 'custom_' + Date.now(),
+        day: document.getElementById('input-day').value,
+        time: document.getElementById('input-time').value,
+        subject: document.getElementById('input-subject').value,
+        type: document.getElementById('input-type').value,
+        subgroup: document.getElementById('input-subgroup').value,
+        room: document.getElementById('input-room').value,
+        teacher: document.getElementById('input-teacher').value
+      };
+
+      if(editId) {
+        const idx = currentSchedule.findIndex(i => i.id === editId);
+        if(idx !== -1) currentSchedule[idx] = newItem;
+      } else {
+        currentSchedule.push(newItem);
+      }
+
+      closeModal();
+      renderApp();
+    }
+
+    function deleteCurrentItem() {
+      const editId = document.getElementById('edit-id').value;
+      if(!editId) return;
+
+      currentSchedule = currentSchedule.filter(i => i.id !== editId);
+      closeModal();
+      renderApp();
+    }
+
+    // Task Modal Handlers
+    function openAddTaskModal(taskId = null) {
+      const modal = document.getElementById('task-modal');
+      const title = document.getElementById('task-modal-title');
+      const subjectSelect = document.getElementById('task-input-subject');
+      const deleteBtn = document.getElementById('btn-delete-task');
+
+      const subjects = getUniqueSubjects();
+      subjectSelect.innerHTML = subjects.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      if(taskId) {
+        const task = TASKS.find(t => t.id === taskId);
+        if(!task) return;
+
+        title.innerHTML = `<i class="ph-bold ph-pencil-simple"></i><span>Редактировать задание</span>`;
+        deleteBtn.style.display = 'flex';
+
+        document.getElementById('task-edit-id').value = task.id;
+        document.getElementById('task-input-subject').value = task.subject;
+        document.getElementById('task-input-title').value = task.title;
+        document.getElementById('task-input-type').value = task.type;
+        document.getElementById('task-input-deadline').value = task.deadline || '';
+        document.getElementById('task-input-status').value = task.status;
+        document.getElementById('task-input-details').value = task.details || '';
+      } else {
+        title.innerHTML = `<i class="ph-bold ph-plus-circle"></i><span>Добавить новое задание</span>`;
+        deleteBtn.style.display = 'none';
+        document.getElementById('task-form').reset();
+        document.getElementById('task-edit-id').value = '';
+        if(selectedSubject && subjects.includes(selectedSubject)) {
+          subjectSelect.value = selectedSubject;
+        }
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeTaskModal() {
+      document.getElementById('task-modal').classList.add('hidden');
+    }
+
+    function handleTaskFormSubmit(e) {
+      e.preventDefault();
+
+      const editId = document.getElementById('task-edit-id').value;
+      const newTask = {
+        id: editId || 'task_' + Date.now(),
+        subject: document.getElementById('task-input-subject').value,
+        title: document.getElementById('task-input-title').value,
+        type: document.getElementById('task-input-type').value,
+        deadline: document.getElementById('task-input-deadline').value,
+        status: document.getElementById('task-input-status').value,
+        details: document.getElementById('task-input-details').value
+      };
+
+      if(editId) {
+        const idx = TASKS.findIndex(t => t.id === editId);
+        if(idx !== -1) TASKS[idx] = newTask;
+      } else {
+        TASKS.push(newTask);
+      }
+
+      closeTaskModal();
+      if(newTask.subject) selectedSubject = newTask.subject;
+      renderNotesView();
+      updatePendingTaskBadges();
+    }
+
+    function deleteCurrentTask() {
+      const editId = document.getElementById('task-edit-id').value;
+      if(!editId) return;
+
+      TASKS = TASKS.filter(t => t.id !== editId);
+      closeTaskModal();
+      renderNotesView();
+      updatePendingTaskBadges();
+    }
+  </script>
+</body>
+</html>
